@@ -3,7 +3,7 @@ import sys
 import os
 import re
 
-def parse_file(path: pathlib.Path, main_file: str, content: list):
+def parse_file(path: pathlib.Path, content: list):
   """Parses a given rust file into the content list.
 
   Args:
@@ -11,37 +11,32 @@ def parse_file(path: pathlib.Path, main_file: str, content: list):
       content (list): A list of all lines of content
   """
   with open(path, "r") as file:
-    # Put file in mod section
-    if path.name != main_file:
-      content.append(f"mod {path.stem} {{\n")
-
     while line := file.readline():
-      # Remove mod calls in file
-      if not re.match("mod\s+.*;", line) is None:
-        pass
+      # Parse mod calls
+      if not (match := re.match("(pub )?\s*mod\s+(\S+)\s*;", line)) is None:
+        name = visibility = None
+
+        if len(match.groups()) == 2:
+          visibility = match.groups()[0]
+          name = match.groups()[1]
+        else:
+          name = match.groups()[0]
+
+        # ./<name>.rs exists
+        if (path.parent / f"{name}.rs").exists():
+          content.append(f"{visibility + ' ' if visibility else ''}mod {name} {{\n")
+          parse_file(path.parent / f"{name}.rs", content)
+          content.append(f"}}\n")
+        # ./<name>/mod.rs exists
+        elif (path.parent / f"{name}/mod.rs").exists():
+          content.append(f"{visibility + ' ' if visibility else ''}mod {name} {{\n")
+          parse_file(path.parent / f"{name}/mod.rs", content)
+          content.append(f"}}\n")
       else:
         content.append(line)
 
-    # Close file mod section
-    if path.name != main_file:
-      content.append(f"\n}}\n")
-
   # Add newline as delimiter
   content.append("\n")
-
-def find_files(dir: pathlib.Path):
-  """Finds all files in the given directory recursively.
-
-  Args:
-      dir (pathlib.Path): The root directory for finding files
-
-  Yields:
-      pathlib.Path: The next file in the given directory
-  """
-  for dirpath, _dirname, files in os.walk(dir):
-    for name in files:
-      if name.lower().endswith(".rs"):
-        yield pathlib.Path(dirpath) / name
 
 if __name__ == "__main__":
   root_dir = pathlib.Path(sys.argv[1])
@@ -53,9 +48,8 @@ if __name__ == "__main__":
   if out_file.exists():
     out_file.unlink()
 
-  # Parse all files in current directory recursively
-  for file in find_files(root_dir):
-    parse_file(file, main_file, content)
+  # Recursively parse files starting from main file
+  parse_file(root_dir / main_file, content)
 
   print(f"Writing file {out_file} ...");
 
