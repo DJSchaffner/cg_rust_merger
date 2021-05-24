@@ -1,6 +1,5 @@
 import pathlib
 import sys
-import os
 import re
 
 def parse_file(path: pathlib.Path, content: list):
