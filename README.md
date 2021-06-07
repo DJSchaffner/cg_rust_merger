@@ -7,7 +7,7 @@ Feel free to open a ticket with feature requests or bug reports if you have / fi
 
 # Usage
 
-Call cg_rust_merger.exe <PathToProject> <RelativeMainFilePath>  
+Call cg_rust_merger.exe \<PathToProject> \<RelativeMainFilePath>  
 ex: ./ cg_rust_merger.exe C:/myrustproject/ src/main.rs
   
 Example `tasks.json` file for VSCode:
